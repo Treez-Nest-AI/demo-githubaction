@@ -29,10 +29,16 @@ jobs:
       - name: Detect changed services + language
         id: changed
         run: |
+          # Determine base commit (PR vs main push)
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base_sha="$(git merge-base HEAD origin/${{ github.base_ref }})"
             list=$(git diff --name-only "$base_sha" HEAD | grep "^services/" | cut -d'/' -f2 | sort -u)
           else
+            list=$(ls services)
+          fi
+
+          # If nothing detected, default to all services
+          if [ -z "$list" ]; then
             list=$(ls services)
           fi
 
@@ -48,4 +54,8 @@ jobs:
             json=$(echo "$json" | jq --arg n "$s" --arg l "$lang" '. + [{name:$n,lang:$l}]')
           done
 
-          echo "services=$json" >> $GITHUB_OUTPUT
+          echo "Detected services:"
+          echo "$json"
+
+          # Write to GitHub output correctly (no spaces, no quotes)
+          printf "services=%s" "$json" >> "$GITHUB_OUTPUT"
