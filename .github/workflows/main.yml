@@ -107,15 +107,15 @@ jobs:
       - name: npm audit (production only)
         if: matrix.service.lang == 'node'
         working-directory: services/${{ matrix.service.name }}
-        run: npm audit --production --audit-level=high --json > npm-audit.json
+        run: npm audit --production --audit-level=high --json > npm-audit.json || true
       
-      # - name: Upload npm audit report
-      #   if: always() && matrix.service.lang == 'node'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: npm-audit-${{ matrix.service.name }}
-      #     path: services/${{ matrix.service.name }}/npm-audit.json
-      #     if-no-files-found: ignore
+      - name: Upload npm audit report
+        if: always() && matrix.service.lang == 'node'
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-${{ matrix.service.name }}
+          path: services/${{ matrix.service.name }}/npm-audit.json
+          if-no-files-found: ignore
 
       # -------- Python Service --------
       - name: Set up Python
@@ -134,7 +134,10 @@ jobs:
       - name: Run Python tests (pytest)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: pytest
+        run: |
+          pip install pytest
+          pytest
+
 
       - name: Python dependency vulnerability scan (pip-audit)
         if: matrix.service.lang == 'python'
@@ -148,10 +151,10 @@ jobs:
         working-directory: services/${{ matrix.service.name }}
         run: bandit -ll -ii -r . -f json -o bandit-report.json
       
-      # - name: Upload Python security reports
-      #   if: always() && matrix.service.lang == 'python'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: python-security-${{ matrix.service.name }}
-      #     path: services/${{ matrix.service.name }}/bandit-report.json
-      #     if-no-files-found: ignore
+      - name: Upload Python security reports
+        if: always() && matrix.service.lang == 'python'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-security-${{ matrix.service.name }}
+          path: services/${{ matrix.service.name }}/bandit-report.json
+          if-no-files-found: ignore
