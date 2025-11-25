@@ -22,10 +22,30 @@ jobs:
     outputs:
       services: ${{ steps.changed.outputs.services }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Detect changed services
+      - name: Detect changed services + language
         id: changed
         run: |
-          services=$(git diff --name-only origin/${{ github.base_ref }} | grep "^demo-githubaction/services/" | cut -d'/' -f3 | sort -u | jq -R . | jq -s .)
-          echo "services=$services" >> $GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="$(git merge-base HEAD origin/${{ github.base_ref }})"
+            list=$(git diff --name-only "$base_sha" HEAD | grep "^services/" | cut -d'/' -f2 | sort -u)
+          else
+            list=$(ls services)
+          fi
+
+          json="[]"
+          for s in $list; do
+            if [ -f "services/$s/package.json" ]; then
+              lang="node"
+            elif [ -f "services/$s/requirements.txt" ]; then
+              lang="python"
+            else
+              continue
+            fi
+            json=$(echo "$json" | jq --arg n "$s" --arg l "$lang" '. + [{name:$n,lang:$l}]')
+          done
+
+          echo "services=$json" >> $GITHUB_OUTPUT
