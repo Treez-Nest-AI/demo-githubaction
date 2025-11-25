@@ -16,6 +16,10 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.10"
+
 jobs:
   detect-services:
     runs-on: ubuntu-latest
@@ -64,3 +68,37 @@ jobs:
             echo "$json"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
+  build-test:
+    runs-on: ubuntu-latest
+    needs: detect-services
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+    name: Build & Test ${{ matrix.service.name }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node
+        if: matrix.service.lang == 'node'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: |
+            services/${{ matrix.service.name }}/package-lock.json
+
+      - name: Install Dependencies
+        if: matrix.service.lang == 'node'
+        working-directory: services/${{ matrix.service.name }}
+        run: npm install
+
+      - name: Run Node Test
+        if: matrix.service.lang == 'node'
+        working-directory: services/${{ matrix.service.name }}
+        run: npm test
+
+      - name: npm audit (production only)
+        if: matrix.service.lang == 'node'
+        working-directory: services/${{ matrix.service.name }}
+        run: npm audit --production --audit-level=high
