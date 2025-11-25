@@ -1,0 +1,31 @@
+name: CI/CD with serverless
+
+on:
+  pull_request:
+    paths:
+      - 'services/**'
+      - '.gihub/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/**'
+      - '.gihub/**'
+
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+
+jobs:
+  detect-services:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changed.outputs.services }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect changed services
+        id: changed
+        run: |
+          services=$(git diff --name-only origin/${{ github.base_ref }} | grep "^services/" | cut -d'/' -f3 | sort -u | jq -R . | jq -s .)
+          echo "services=$services" >> $GITHUB_OUTPUT"
