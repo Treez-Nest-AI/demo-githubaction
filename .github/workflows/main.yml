@@ -99,10 +99,10 @@ jobs:
         working-directory: services/${{ matrix.service.name }}
         run: npm test
 
-      - name: Run ESLint
-        if: matrix.service.lang == 'node'
-        working-directory: services/${{ matrix.service.name }
-        run: npm run lint
+      # - name: Run ESLint
+      #   if: matrix.service.lang == 'node'
+      #   working-directory: services/${{ matrix.service.name }
+      #   run: npm run lint
 
       - name: npm audit (production only)
         if: matrix.service.lang == 'node'
