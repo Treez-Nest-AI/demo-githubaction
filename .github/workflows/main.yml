@@ -129,11 +129,13 @@ jobs:
         working-directory: services/${{ matrix.service.name }}
         run: pytest
 
-      - name: Python Safety scan (dependencies)
+      - name: Python dependency vulnerability scan (pip-audit)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: safety scan
-
+        run: |
+          pip install pip-audit
+          pip-audit
+          
       - name: Python Bandit scan (SAST)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
