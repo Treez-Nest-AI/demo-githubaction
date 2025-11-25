@@ -4,12 +4,12 @@ on:
   pull_request:
     paths:
       - 'services/**'
-      - '.gihub/**'
+      - '.github/**'
   push:
     branches: [ main ]
     paths:
       - 'services/**'
-      - '.gihub/**'
+      - '.github/**'
 
 permissions:
   id-token: write
