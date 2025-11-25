@@ -149,7 +149,9 @@ jobs:
       - name: Python Bandit scan (SAST)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: bandit -ll -ii -r . -f json -o bandit-report.json
+        run: |
+          pip install bandit
+          bandit -ll -ii -r . -f json -o bandit-report.json
       
       - name: Upload Python security reports
         if: always() && matrix.service.lang == 'python'
