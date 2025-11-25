@@ -20,16 +20,16 @@ jobs:
   detect-services:
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.changed.outputs.services }}
+      services: ${{ steps.detect.outputs.services }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Detect changed services + language
-        id: changed
+        id: detect
         run: |
-          # Determine base commit (PR vs main push)
+          # Determine base commit (PR vs push)
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base_sha="$(git merge-base HEAD origin/${{ github.base_ref }})"
             list=$(git diff --name-only "$base_sha" HEAD | grep "^services/" | cut -d'/' -f2 | sort -u)
@@ -42,6 +42,7 @@ jobs:
             list=$(ls services)
           fi
 
+          # Build JSON: [ {"name":"x","lang":"node|python"} ]
           json="[]"
           for s in $list; do
             if [ -f "services/$s/package.json" ]; then
@@ -57,5 +58,9 @@ jobs:
           echo "Detected services:"
           echo "$json"
 
-          # Write to GitHub output correctly (no spaces, no quotes)
-          printf "services=%s" "$json" >> "$GITHUB_OUTPUT"
+          # Store multiline output correctly
+          {
+            echo "services<<EOF"
+            echo "$json"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
