@@ -132,9 +132,9 @@ jobs:
       - name: Python Safety scan (dependencies)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: safety check
+        run: safety scan
 
       - name: Python Bandit scan (SAST)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: bandit -r .
+        run: bandit -ll -ii -r .
