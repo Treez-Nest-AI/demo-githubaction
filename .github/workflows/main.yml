@@ -27,5 +27,5 @@ jobs:
       - name: Detect changed services
         id: changed
         run: |
-          services=$(git diff --name-only origin/${{ github.base_ref }} | grep "^services/" | cut -d'/' -f3 | sort -u | jq -R . | jq -s .)
+          services=$(git diff --name-only origin/${{ github.base_ref }} | grep "^demo-githubaction/services/" | cut -d'/' -f3 | sort -u | jq -R . | jq -s .)
           echo "services=$services" >> $GITHUB_OUTPUT"
