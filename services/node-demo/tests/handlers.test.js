@@ -8,5 +8,5 @@ test("returns 200 status code", async () => {
 test("returns correct message", async () => {
     const response = await hello();
     const body = JSON.parse(response.body);
-    expect(body.message).toBe("hello from nodejs demo service");
+    expect(body.message).toBe("Hello From nodejs demo service");
 });
