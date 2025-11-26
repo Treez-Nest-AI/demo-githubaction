@@ -39,8 +39,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN}}
         
-      - name: Run Gitleaks Using Custom Config
-        run: gitleaks detect --no-git --source="." --exit-code=1 --report-path="gitleaks-report.json"
+      - name: Run Gitleaks Using Full Scan
+        working-directory: ${{ github.workspace }}
+        run: |
+          gitleaks detect \
+            --no-git \
+            --source="${{ github.workspace }}" \
+            --report-path="gitleaks-report.json" \
+            --report-format="json" \
+            --redact \
+            --exit-code=1
           
       - name: Upload Gitleaks Report
         if: always()
