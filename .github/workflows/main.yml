@@ -16,6 +16,11 @@ permissions:
   contents: read
   security-events: write
 
+# Prevents wasted build minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: "20"
   PYTHON_VERSION: "3.10"
@@ -59,13 +64,8 @@ jobs:
             json=$(echo "$json" | jq --arg n "$s" --arg l "$lang" '. + [{name:$n,lang:$l}]')
           done
 
-          # Prevent empty matrix → create placeholder
-          if [ "$json" = "[]" ]; then
-            echo "⚠️ No services detected. Using placeholder."
-            json='[{"name":"__none__","lang":"none"}]'
-          fi
-
-          echo "Detected services: $json"
+          echo "Detected services:"
+          echo "$json"
 
           # Store multiline output correctly
           {
@@ -80,7 +80,6 @@ jobs:
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
-    if: ${{ matrix.service.name != '__none__' }}
     name: Build & Test ${{ matrix.service.name }}
     steps:
       - uses: actions/checkout@v6
@@ -124,6 +123,13 @@ jobs:
           if-no-files-found: ignore
 
       # -------- Python Service --------
+      - name: Cache Pip
+        if: matrix.service.lang == 'python'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('services/${{ matrix.service.name }}/requirements.txt') }}
+
       - name: Set up Python
         if: matrix.service.lang == 'python'
         uses: actions/setup-python@v6
@@ -149,7 +155,7 @@ jobs:
       - name: Python dependency vulnerability scan (pip-audit)
         if: matrix.service.lang == 'python'
         working-directory: services/${{ matrix.service.name }}
-        run: pip-audit --format=json > pip-audit.json || true
+        run: pip-audit --fail-on-severity high -f json > pip-audit.json
 
       - name: Python Bandit scan (SAST)
         if: matrix.service.lang == 'python'
@@ -162,37 +168,41 @@ jobs:
         with:
           name: python-security-${{ matrix.service.name }}
           path: |
-            services/${{ matrix.service.name }}/pip-audit.json
             services/${{ matrix.service.name }}/bandit-report.json
+            services/${{ matrix.service.name }}/pip-audit.json
           if-no-files-found: ignore
   
-  semgrep:
+  trivy-scan:
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: detect-services
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect-services.outputs.services) }}
-    if: ${{ matrix.service.name != '__none__' }}
-    name: Semgrep – ${{ matrix.service.name }} 
-    container:
-      image: semgrep/semgrep:latest
+    name: Trivy Scan ${{ matrix.service.name }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: SAST Scan (Semgrep SARIF)
-        run: |
-          semgrep scan --config auto services/${{ matrix.service.name }} --sarif --output semgrep-${{ matrix.service.name }}.sarif
-
-      - name: Upload Semgrep SARIF to code scanning
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
         with:
-          sarif_file: semgrep-${{ matrix.service.name }}.sarif
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy
 
-      - name: Upload Semgrep report artifact
-        if: always()
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'services/${{ matrix.service.name }}'
+          severity: 'HIGH,CRITICAL'
+          scanners: 'vuln'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service.name }}.sarif'
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF report
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-${{ matrix.service.name }}
-          path: semgrep-${{ matrix.service.name }}.sarif
+          name: trivy-${{ matrix.service.name }}
+          path: trivy-${{ matrix.service.name }}.sarif
           if-no-files-found: ignore
