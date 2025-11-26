@@ -41,7 +41,7 @@ jobs:
         
       - name: Run Gitleaks Using Custom Config
         run: |
-          gitleaks detect --source="." \
+          gitleaks detect --no-git --source="." \
             --report-format="json" \
             --report-path="gitleaks-report.json" \
             --redact \
