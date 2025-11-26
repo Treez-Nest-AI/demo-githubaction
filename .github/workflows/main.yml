@@ -40,13 +40,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN}}
         
       - name: Run Gitleaks Using Custom Config
-        run: |
-          gitleaks detect --no-git --source="." \
-            --report-format="json" \
-            --report-path="gitleaks-report.json" \
-            --redact \
-            --exit-code=1
-        
+        run: gitleaks detect --no-git --source="." --exit-code=1 --report-path="gitleaks-report.json"
+          
       - name: Upload Gitleaks Report
         if: always()
         uses: actions/upload-artifact@v4
