@@ -1,6 +1,7 @@
 def hello(event, context):
-    # ❗ FAKE AWS KEY (This will make Gitleaks fail)
-    AWS_ACCESS_KEY_ID = "AKIA1234567890ABCD1234"
+    # 🚨 Fake Stripe API Key (WILL fail Gitleaks default rules)
+    LEAKED_API_KEY = "AKIA1234567890ABCDE" + "F"
+
     return {
         "statusCode": 200,
         "body": "Hello from python demo service!"
